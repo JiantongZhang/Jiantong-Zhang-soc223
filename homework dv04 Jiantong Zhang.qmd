@@ -1,0 +1,140 @@
+---
+title: "homework dv04"
+author: "Jiantong (Isabelle) Zhang"
+embed-resources: true
+format: html
+editor: visual
+---
+
+## Question 1
+
+```{r}
+library(tidyverse)
+tv_ratings <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/tv_ratings.csv")
+glimpse(tv_ratings)
+```
+
+```{r}
+tv_long <- tv_ratings |>
+  group_by(title) |>
+  summarise(num_seasons = n()) |>
+  ungroup() |>
+  left_join(tv_ratings, by = "title")
+```
+
+```{r}
+tv_long <-tv_long |>
+  filter(num_seasons >= 5)
+glimpse(tv_long)
+```
+
+```{r}
+ggplot(data= tv_long,
+       mapping = aes(x = seasonNumber,
+                     y = av_rating,
+            group = title,
+            fill = title)) +
+  geom_line()
+
+```
+
+Most shows do not last very many seasons (around 1-5 seasons), and have average ratings between 7 and 9.
+
+## Question 2
+
+```{r}
+ggplot(data= tv_long,
+       mapping = aes(x = seasonNumber,
+                     y = av_rating,
+            group = titleId,
+            fill = titleId)) +
+  geom_line() +
+  facet_wrap(~genres)
+```
+
+Crime drama mystery shows and drama romance shows tend to last longer seasons. Ratings do change across seasons, sometimes plummeting and then rising between seasons, sometimes rising or falling smoothly throughout seasons. Season 6 of the show Drama, Family, Fantasy's rating plummeted.
+
+## Question 3
+
+```{r}
+tv_ratings_high <- tv_ratings |>
+  filter(av_rating >= "9")
+
+ggplot(data= tv_ratings_high,
+       aes(x=genres))+
+  geom_bar() 
+```
+
+```{r}
+ggplot(data= tv_ratings_high,
+       aes(x=genres))+
+  geom_bar() +
+  coord_flip()
+```
+
+coord_flip() flips the plot's x and y. Drama has the highest rating shows.
+
+## Question 4
+
+```{r}
+comedies_dramas <- tv_ratings |>
+  mutate(is_comedy = if_else(str_detect(genres, "Comedy"),
+                             1,
+                             0)) |>
+  filter(is_comedy ==1 | genres == "Drama") |>
+  mutate(genres = if_else(genres == "Drama",
+                          "Drama",
+                          "Comedy"))
+glimpse(comedies_dramas)
+```
+
+```{r}
+ggplot(data= comedies_dramas,
+       mapping = aes(x= av_rating, color = genres,
+                group = genres)) +
+  geom_density()
+```
+
+Comedies are most commonly rated at 8, while dramas are most commonly rated at around 8.2, so dramas are rated higher.
+
+## Question 5
+
+```{r}
+ggplot(data= comedies_dramas,
+       mapping = aes(x= av_rating, color = genres,
+                group = genres)) +
+  geom_histogram()
+```
+
+Looking at the size of bars, there are much more comedies in numbers compared to dramas.
+
+```{r}
+ggplot(data= comedies_dramas,
+       mapping = aes(x= av_rating, color = genres,
+                group = genres)) +
+  geom_freqpoly()
+```
+
+This plot shows how many comedies and dramas rate how much. I feel like if we are comparing the average rating distributions, the first density graph works the best, because it shows the percentage distribution of show ratings and visualizes the distribution. In addition, density graph is more about relative percentage distribution, instead of specific number count details. For instance, when there are much more comedies than dramas, comparing specific numbers of shows can be confusing, and their relative percentage and density works better.
+
+## Question 6
+
+```{r}
+ggplot(data= comedies_dramas,
+       mapping= aes(x= av_rating, y=share)) +
+       geom_bin_2d()
+```
+
+The majority of audience usually watch shows that have average rating at around 8, many people watch shows with ratings within 7 and 10, and a small amount of people watch shows with ratings between 0-6.
+
+This type of plot helps visualize the distribution and density of data two-dimentionally compared with a scatter plot.
+
+```{r}
+ggplot(data= comedies_dramas,
+       mapping= aes(x= av_rating, y=share, fill= genres)) +
+       geom_bin_2d()
+```
+
+Comedies tend to have a larger share of audience compared with dramas within the rating range of 7 and 10, but there is a very high bin of dramas with ratings around 8.2, that has around 27 percentage of share, much higher than all the others.
+
+The big outlier is dramas with ratings around 8.2, which has an incredibly high density of 27 percentage of share and shows a very large amount of people watch dramas around 8.2 ratings. It shows the most-watched show is drama at around 8.2 ratings.
