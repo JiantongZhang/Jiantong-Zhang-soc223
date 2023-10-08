@@ -1,0 +1,132 @@
+---
+title: "Homework dv05"
+author: "Jiantong Zhang"
+embed-resources: true
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+wncaa <- read_csv("https://raw.githubusercontent.com/vaiseys/dav-course/main/Data/wncaa.csv")
+glimpse(wncaa)
+```
+
+## Question 1
+
+```{r}
+wncaa_new <- wncaa |>
+  filter(tourney_finish == "Champ") |>
+  group_by(school) |>
+  summarize(N = n()) |>
+  mutate(freq = N / sum(N))
+
+wncaa_new
+```
+
+```{r}
+ggplot(data=wncaa_new, 
+       mapping = aes(x= school, y= freq)) +
+  geom_bar(stat= 'identity') +
+  coord_flip()
+```
+
+Most schools won around 2.5-5% of tournaments. Uconn and Tennessee won the most tournaments, with Uconn winning nearly 30% and Tennessee winning over 20%.
+
+## Question 2
+
+```{r}
+champs <- wncaa |>
+  filter(tourney_finish == "Champ")
+champ_names <- unique(champs$school)
+
+```
+
+```{r}
+winners <- wncaa |>
+  filter(school %in% champ_names)
+```
+
+```{r}
+ggplot(data= winners,
+       mapping= aes(x= school, y= seed))+
+  geom_boxplot()+
+  coord_flip()
+```
+
+```{r}
+ggplot(data= winners,
+       mapping= aes(x= school, y= seed))+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter()+
+  coord_flip()
+```
+
+```{r}
+ggplot(data= winners,
+       mapping= aes(x= reorder(school, seed), y= seed))+
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter()+
+  coord_flip()
+```
+
+All of the 25%-75% distributions are within the 1 and 8 seed range, but the distributions vary by school. Most of the outliers are within the 0-2.5 seed range, many are in the 2.5-6 seed range, and there are some within the 6-12.5 seed range. Almost each school has outliers within the the 0-2.5 seed range. Although its distribution of seed is the 8th high, Louisiana tech has a highest outlier at around the 15 seed range.
+
+```{r}
+ggplot(data= winners,
+       mapping= aes(x= reorder(school, seed), y= seed))+
+  geom_violin(outlier.shape = NA)+
+  geom_jitter()+
+  coord_flip()
+```
+
+In this case, the first plot (boxplot) is more informative, because we can see the distribution very clearly, including where is the 25%, what is the 50%, and where is the 75% of each school.
+
+## Question 3
+
+```{r}
+ggplot(data= winners,
+       mapping= aes(x= reorder(school, seed), y= seed))+
+  geom_point(alpha = 0.5) +
+  coord_flip()
+```
+
+This plot does not work well because geom point is not aggregated data but is a scatter plot of separate points, and it can be hard to analyze the overall distributions in this plot.
+
+## Question 4
+
+```{r}
+winners_mean_sd <- winners |> 
+  group_by(school) |> 
+  summarize(across(where(is.numeric),
+                   list(mean = mean,
+                        sd = sd)))
+```
+
+```{r}
+ggplot(data=winners_mean_sd,
+       mapping = aes(x= reorder(school, reg_percent_mean), y=reg_percent_mean )) +
+  geom_point() +
+  coord_flip()
+```
+
+All the teams have relatively high average winning percentage of over 74%. Texas A & M has the lowest regular season winning percentage of around 74%.
+
+```{r}
+ggplot(data= winners_mean_sd, 
+       mapping= aes(x = reorder(school, reg_percent_mean), y = reg_percent_mean)) +
+  geom_pointrange(aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) +
+  coord_flip() 
+
+```
+
+The school with the narrowest interval is Texas A&M, it means that this school has a smaller spread in average win percentages, and it's performance is relatively consistent.
+
+```{r}
+ggplot(data= winners_mean_sd, 
+       mapping= aes(x = reorder(school, reg_percent_mean), y = reg_percent_mean)) +
+  geom_linerange(aes(ymin = reg_percent_mean - reg_percent_sd, ymax = reg_percent_mean + reg_percent_sd)) +
+  coord_flip() 
+```
+
+I think geom_pointrange is better, as it shows both the mean (the point at the center) and the distribution of a dataset, instead of only the distribution in geom_lineage. It allows us to know both the central tendency and the spread of data.
