@@ -1,0 +1,99 @@
+---
+title: "2023-10-10-inclass"
+author: "Jiantong Zhang"
+embed-resources: true
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(moderndive)
+library(ggthemes)
+library(patchwork)
+data(evals)
+glimpse(evals)
+```
+
+```{r}
+d <- evals |>
+  rename(bty = bty_avg,    # just shorter to type
+         sex = gender)     # actually what they have
+
+glimpse(d)
+```
+
+```{r}
+head(d)
+```
+
+```{r}
+library(skimr)
+skim(d)
+```
+
+```{r}
+mod1 <- lm(score ~ age,
+           data= d)
+get_regression_table(mod1)
+```
+
+```{r}
+ggplot(data=d,
+       mapping= aes(x=age,
+                    y=score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm,
+              se = FALSE")
+```
+
+```{r}
+p <- ggplot(data=d,
+       mapping= aes(x=age,
+                    y=score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm,
+              se = FALSE")
+```
+
+```{r}
+p + geom_abline(intercept = 4.462,
+                slope = -.006,
+                color = "blue",
+                size = 1.5)
+```
+
+```{r}
+d |>
+  get_correlation(age ~ bty)
+d |>
+  select(age, bty) |> cor()
+```
+
+```{r}
+mod2 <- lm(bty ~ age,
+           data= d)
+get_regression_table(mod2)
+```
+
+```{r}
+m <- ggplot(data=d,
+       mapping= aes(x=age,
+                    y=bty)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm,
+              se = FALSE")
+```
+
+```{r}
+m + geom_abline(intercept = 6.713	,
+                slope = -.047,
+                color = "blue",
+                size = 1.5)
+```
+
+```{}
+```
+
+```{}
+```
