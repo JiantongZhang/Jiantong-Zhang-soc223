@@ -1,0 +1,76 @@
+---
+title: "Oct 19 medo 06"
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+#｜message: false
+library(tidyverse)
+library(moderndive)
+library(ggthemes)
+library(patchwork)
+theme_set(theme_light)
+```
+
+```{r}
+data(evals)
+glimpse(evals)
+```
+
+```{r}
+d <- evals |>
+  rename(bty = bty_avg,
+         sex = gender)
+glimpse(d)
+```
+
+```{r}
+head(d)
+```
+
+```{r}
+mod1 <- lm(score~ bty,
+           data= d)
+get_regression_table(mod1)
+```
+
+```{r,echo=FALSE}
+ggplot(d,
+       aes(x = bty,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  labs(x = "Beauty",
+       y = "Evaluation",
+       title = "Simple regression results")
+```
+
+```{r,echo=FALSE}
+ggplot(d,
+       aes(x = bty,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  labs(x = "Beauty",
+       y = "Evaluation",
+       title = "Simple regression results")
+```
+
+```{r,echo=FALSE}
+ggplot(d,
+       aes(x = bty,
+           y = score)) +
+  geom_jitter(alpha = .3) +
+  geom_smooth(method = "lm",
+              se = FALSE) +
+  labs(x = "Beauty",
+       y = "Evaluation",
+       title = "Simple regression results")
+```
+
+```{}
+```
