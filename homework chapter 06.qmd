@@ -1,0 +1,176 @@
+---
+title: "Homework chapter 06"
+author: "Jiantong (Isabelle) Zhang"
+embed-resources: true
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(moderndive)
+library(broom)
+
+theme_set(theme_light())
+
+gender_employment <- read_csv('/Users/isabelle/Desktop/Data Analytics/soc223/gender_employment.csv')
+
+
+glimpse(gender_employment)
+```
+
+```{r}
+gender_employment|>
+  ggplot(aes(x = year, y = wage_percent_of_male)) +
+  geom_jitter(alpha = 0.1) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Women's earnings with respect to men's", 
+       y = "% of Men's Income", 
+       x = "Year")
+```
+
+## Question 1
+
+```{r}
+gender_employment <- gender_employment %>% 
+  mutate(major_category = as.factor(major_category), 
+         major_category = relevel(major_category, ref = "Management, Business, and Financial"))
+```
+
+```{r}
+parallel_model <- lm(wage_percent_of_male ~ year + major_category, data= gender_employment)
+```
+
+```{r}
+broom :: tidy(parallel_model)
+```
+
+The year estimate is 0.1922. This shows that there is a positive trend in the "wage_percent_of_male" over time. In other words, it suggests that, on average, the women's wage percentage of males is increasing by approximately 0.1922 units each year when other factors (including major_category) remain constant.
+
+The wage percentage of male income for Sales and Office occupations on 2015 is
+
+```{r}
+-306.718 + 0.192*2015 +3.326 *1
+```
+
+The wage percentage of male income for Service occupations on 2016 is
+
+```{r}
+-306.718 + 0.192*2016 + 6.077 *1
+```
+
+## Question 2
+
+```{r}
+ggplot(data= parallel_model,
+       mapping = aes(x= year,
+                     y= wage_percent_of_male,
+                     group =major_category)) +
+  geom_parallel_slopes(se = FALSE)
+```
+
+I realize that all the lines are parallel. This is not a good assumption, as in this prediction, each category has the same slope, which might not have been closest to reality.
+
+## Question 3
+
+```{r}
+parallel_model_2 <- lm(wage_percent_of_male ~ year + major_category + year: major_category, data= gender_employment)
+```
+
+```{r}
+broom :: tidy(parallel_model_2)
+```
+
+The estimate for "Computer, Engineering, and Science" for 2016 is
+
+```{r}
+-1370.472 + 0.72 * 2016 + 1002.853 *1 -0.495*2016 *1
+```
+
+The estimate for service for 2016 is
+
+```{r}
+-1370.472 + 0.72 *2016 + 2137.650*1 -1.058 *2016 *1
+```
+
+The major category and the year : major category is different for the two categories, the prediction is more accurate than the previous model because we get to include year : major category. This model no longer predicts parallel trends.
+
+## Question 4
+
+Probably when we have way too many categories, if we have models that predicts parallel trends, it would be more simple to read and interpret.
+
+## Question 5
+
+```{r}
+simple_fit <- lm(wage_percent_of_male ~ year, data= gender_employment)
+```
+
+```{r}
+broom :: tidy(simple_fit)
+```
+
+The intercept is -321.832 and the slope is 0.201. If we want to predict the wage_percentage_of_male by year, the formula is wage_percentage_of_male = -321.832 + 0.201 \* year
+
+```{r}
+gender_employment |>
+  select(year, wage_percent_of_male, percent_female) |>
+  cor(use = "complete.obs")
+```
+
+The correlation between wage percent of male and year is 0.024, which suggests a very week positive relationship between them. The correlation between wage percent of male and percent female is 0.111, which is still pretty week positive relationship, but a little stronger than the previous one. The relationship between year and percent female is 0.005, which is close to 0, and indicates a very very very week positive relationship between the two variables.
+
+```{r}
+multiple_fit <- lm(wage_percent_of_male ~ year * percent_female, data= gender_employment)
+broom :: tidy(multiple_fit)
+```
+
+The intercept is -800. The coefficient for year is approximately 0.438, which means that for each additional year, the wage percent of male increases by approximately 0.438 units. The coefficient for percent_female is approximately 10.64, which means that for each one-unit increase in the proportion of females working in an occupation, the wage percent of male increases by approximately 10.64 units. The coefficient for year: percent_female is -0.00526, which means there is a negative relationship: when the percentage of female rises, the positive relationship between year and wage percentage of male becomes weaker.
+
+This is not exactly what I imagined: the first two coefficients fit my assumption, as I think that as the year rises, gender equality is promoted better, and that women would have a higher percentage of wage as compared to male, which fits the positive relationship. In addition, I also thought that when a job has higher percentage of female, the females are likely to have better chances of having a higher percentage of wage of male. However, I didn't expect the year: percent_female estimate to be negative, I thought that as the percentage of female rises, the positive relationship between year and wage percentage of male will become higher.
+
+## Question 6
+
+R-squared is a statistical measure that quantifies the proportion of the variation in the dependent variable. It is usually between 0 and 1. When a R-squared value closer to 1, it indicates that a larger proportion of the variation in the dependent variable can be attributed to the independent variable, and when it's closer to 0, vice versa.
+
+```{r}
+simple_glanced <- glance(simple_fit)
+```
+
+```{r}
+simple_glanced $ r.squared
+```
+
+```{r}
+multiple_glanced <- glance(multiple_fit)
+```
+
+```{r}
+multiple_glanced $r.squared
+```
+
+For simple fit, the R square is very close to zero, which means that the variation of the wage_percent_of_male is nearly independent from year. For multiple fit, the R square is a little higher, but still only 0.01, this shows that only around 1% of the variation on the wage percent of male is dependent on the year, percentage female, and their interactions. This also shows a very weak dependent relationship.
+
+## Extra 
+
+```{r}
+random_numbers <- rnorm(n = nrow(gender_employment), 
+                        mean = 0, 
+                        sd = 4)
+```
+
+```{r}
+gender_employment$random_noise <- random_numbers
+
+random_fit <- lm(wage_percent_of_male ~ year + percent_female + random_noise, data = gender_employment)
+
+```
+
+```{r}
+random_glanced <- glance(random_fit)
+```
+
+```{r}
+random_glanced $r.squared
+```
+
+This shows that even by adding a completely random variable, the R squared increased a bit. It shows the weakness of R square of improving whenever I add a variable, whatever that is.
