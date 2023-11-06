@@ -1,0 +1,10 @@
+---
+title: "project idea"
+author: "Isabelle Zhang"
+format: html
+editor: visual
+---
+
+I want to research the price of artworks using the art price dataset on kaggle (https://www.kaggle.com/datasets/flkuhm/art-price-dataset). I want to find out which artworks have the highest price (which period of art history do they belong, who are they painted by, the condition, whether it's signed). I would likely use regression/correlation models to research this.
+
+Ava want to research artists with the most listened music on spotify, and Estella want to research Harry Potter characters and their witchcrafts(yayyy!!!)
