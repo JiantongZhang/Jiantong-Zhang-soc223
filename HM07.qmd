@@ -1,0 +1,167 @@
+---
+title: "HM07"
+author: "Isabelle Zhang"
+format: html
+embed-resources: true
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(moderndive)
+theme_set(theme_minimal())
+nobel_winners <- read_csv( "nobel_winners.csv")
+```
+
+```{r}
+nobel_winners_flt <- nobel_winners |>
+  filter (category != "Peace") |>
+  mutate(is_us = if_else(birth_country == "United States of America", 1, 0))
+```
+
+```{r}
+true_prop <- nobel_winners_flt |>
+  group_by(is_us) |>
+  summarise(prop= n()/nrow(nobel_winners_flt))
+
+true_prop
+```
+
+The true proportion for US-born Nobel winners is 30.6%.
+
+```{r}
+ggplot() +
+  coord_cartesian(xlim = c(0,1), ylim= c(0,1)) +
+  geom_vline(xintercept = true_prop[2,2] [[1]], linetype = "dashed") +
+  labs(x="Proportion")
+```
+
+```{r}
+set.seed(33)
+our_sample <- sample_n(nobel_winners_flt,
+                       size = 25,
+                       replace = F)
+
+sample_prop <- our_sample |>
+  group_by(is_us) |>
+  summarise(prop= n()/nrow(our_sample))
+sample_prop
+```
+
+The proportion of US born artists are 48%.
+
+```{r}
+ggplot() +
+  coord_cartesian(xlim= c(0,1), ylim= c(0,1)) +
+  geom_vline(xintercept = true_prop[2,2][[1]], linetype = "dashed") +
+  geom_vline(xintercept = sample_prop [2,2][[1]], linetype = "dotted", col = "red") +
+  labs(x="Proportion")
+```
+
+## Question 1
+
+The population is every single scientific nobel prize winners.
+
+The sampling frame is the list of all scientific nobel prize winners that we have (in this case, although very rarely, is the same to the total population).
+
+The black line represent the true proportion of US born scientific nobel winners.
+
+The red line represent the proportion of US born scientific nobel prize winners in the random 25 nobel winners sample.
+
+## Question 2
+
+```{r}
+set.seed(33)
+reps <- nobel_winners_flt |>
+  rep_sample_n(size = 25,
+               reps = 50,
+               replace = FALSE) 
+
+sample <- reps|>
+  group_by(replicate) |>
+  summarise(prop = sum(is_us)/25)
+
+sample |>
+  ggplot(aes(x= prop)) +
+  geom_vline(xintercept =mean (nobel_winners_flt $ is_us),
+             linetype= "dashed") +
+  geom_vline(xintercept = mean(sample $ prop),
+             linetype = "dashed", color = "red")
+```
+
+## Question 3
+
+```{r}
+set.seed(33)
+reps2 <- nobel_winners_flt |>
+  rep_sample_n(size = 100,
+               reps =50,
+               replace = FALSE)
+
+sample2 <- reps2 |>
+  group_by(replicate) |>
+  summarize(prop= sum(is_us)/100)
+
+sample2
+
+```
+
+```{r}
+
+sample2 |>
+  ggplot(aes(x=prop)) +
+  geom_vline(xintercept = mean(nobel_winners_flt $is_us),
+             linetype= "dashed") +
+  geom_vline(xintercept = mean(sample2$prop),
+             linetype = "dashed", color = "red")
+```
+
+The first distribution is more varied, because the second sample has a larger size and it produces more stable and less varied results compared to the first sample.
+
+## Question 4
+
+```{r}
+sd1 <- sd(sample$prop)
+sd1
+```
+
+```{r}
+sd2 <- sd(sample2$prop)
+sd2
+```
+
+This supports my argument above that the first sample has a larger variation. This implies when the sample size is bigger, the results are more stable and less varied (the standard deviation is lower).
+
+## Question 5
+
+```{r}
+new_nobel_winners_flt <- nobel_winners_flt |>
+  mutate(is_female = if_else(gender == "Female", 1, 0))
+```
+
+```{r}
+set.seed(33)
+reps3 <- new_nobel_winners_flt |>
+  rep_sample_n(size =100,
+               reps =50,
+               replace = FALSE)
+
+sample3 <- reps3 |>
+  group_by(replicate) |>
+  summarise(prop= sum(is_female)/100)
+sample3
+```
+
+```{r}
+sample3 |>
+  ggplot(aes(x=prop)) +
+  geom_vline(xintercept = mean(new_nobel_winners_flt $ is_female),
+             linetype = "dashed") +
+  geom_vline(xintercept = mean(sample3 $prop),
+             linetype= "dashed", color = "red")
+```
+
+## Question 6
+
+Central limit theory: The sample averages always have nearly normal distributions. Also, when the sample size gets bigger, the distribution of sample average will become closer to the true mean amount of the total population.
