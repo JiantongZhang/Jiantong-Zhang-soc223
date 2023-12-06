@@ -1,0 +1,286 @@
+---
+title: "Covid Art Auctions"
+author: "Tuesday Group 8"
+format: html
+embed-resources: true
+echo: false
+editor: visual
+---
+
+# Did Covid Impact the Contemporary Art Auction Market? Final Project by Isabelle Zhang
+
+## 1. Introduction
+
+Commencing in late 2019, the COVID-19 pandemic significantly influenced the art industry, causing extensive disruptions attributable to global lockdowns and restrictions. This study concentrates on Christie's, a renowned auction house, and specifically examines its contemporary art auctions held between 2018 and 2023. The objective is **to investigate the impact of the pandemic on Christie's, considering both the immediate consequences during the peak of the pandemic and the subsequent period post-pandemic, with a focus on their New York and Hong Kong branches.**
+
+I collected the data with the help of my friends Eduardo Penaranda, Cynthia Wang, Jane Yoon from Christie's official website (https://www.christies.com/). We manually collected information of each contemporary art auction in Christie's New York and Hong Kong, including auction names, dates, total sales figures, number of lots, auction formats, and the classification of day or evening auctions.
+
+To ensure uniformity and comparability, I converted all financial figures from Hong Kong Dollars (HKD) to United States Dollars (USD) using an exchange rate of 1:0.13. I also **defined Covid Status differently** for New York and Hong Kong, as the specific covid conditions and restrictions differ significantly. In Hong Kong, the pre-COVID period spans from January 2018 to January 2020, the COVID period ranges from February 2020 (first Covid case in Hong Kong) to September 2022 (when Hong Kong lifted travel restrictions and lockdown policies), and the post-COVID period extends from October 2022 to November 2023 (present). In New York, the pre-COVID period covers January 2018 to February 2020, the COVID period spans from March 2020 (first Covid case in New York) to June 2021, and the post-COVID period is from July 1, 2021 (when New York fully reopened), to November 2023 (current).
+
+```{r}
+library(broom)
+library(ggeffects)
+library(ggplot2movies)
+library(tidyverse)
+library(moderndive)
+library(dplyr)
+```
+
+```{r}
+HK <- read.csv('/Users/isabelle/Desktop/Art Market Research/New_Covid_Art_Auction_Data_HK.csv')
+```
+
+```{r}
+NY <- read.csv('/Users/isabelle/Desktop/Art Market Research/New_Covid_Art_Auction_Data_NY.csv')
+```
+
+```{r}
+HK_clean<- HK |>
+  mutate(Sales_Total_HKD = gsub(",", "", Sales_Total_HKD),
+         Sales_Total_HKD = as.numeric(Sales_Total_HKD),
+         Mean_Price_USD = Sales_Total_HKD * 0.13 / Lots_Number)
+
+NY_clean <- NY |>
+  mutate(Sales_Total_USD = gsub(",", "", Sales_Total_USD),
+         Sales_Total_USD = as.numeric(Sales_Total_USD),
+         Mean_Price_USD = Sales_Total_USD / Lots_Number)
+```
+
+```{r}
+HK_clean <- HK_clean|> 
+  mutate(Sales_Total_USD = Sales_Total_HKD*0.13)
+```
+
+```{r}
+HK_cleaner <- HK_clean |>
+  mutate(source= "HK") |>
+  select(-Sales_Total_HKD) |>
+  select(-Mean_Price)
+
+NY_clean <- NY_clean |>
+  mutate(source= "NY") |>
+  select(-Mean_Price)
+```
+
+```{r}
+desired_order <- names(NY_clean)
+
+HK_cleaner <- HK_cleaner |>
+  select(all_of(desired_order))
+```
+
+```{r}
+Total <- rbind(NY_clean,HK_cleaner) |>
+  drop_na()
+glimpse(Total)
+```
+
+```{r}
+Total <- Total |>
+  mutate(year_month_numeric = Auction_Year * 12 + Auction_Month)
+```
+
+```{r}
+Total <- Total|>
+  mutate(
+    Covid_Status = case_when(
+      source == "HK" & year_month_numeric < 24242 ~ "Pre-Covid",
+      source == "HK" & year_month_numeric >= 24242 & year_month_numeric < 24274 ~ "Covid",
+      source == "HK" & year_month_numeric >= 24274 ~ "Post-Covid",
+      source == "NY" & year_month_numeric < 24243 ~ "Pre-Covid",
+      source == "NY" & year_month_numeric >= 24243 & year_month_numeric < 24259 ~ "Covid",
+      source == "NY" & year_month_numeric >= 24259 ~ "Post-Covid",
+      TRUE ~ NA_character_  # Default case, set to NA if none of the conditions are met
+    ))
+```
+
+```{r}
+Total <- Total |>
+  group_by(Covid_Status, source) |>
+  mutate(Sales_Total_Covid_Status= sum(Sales_Total_USD), Lots_Covid_Status=sum(Lots_Number) )
+```
+
+```{r}
+Total <- Total %>%
+  group_by(source, Covid_Status) %>%
+  mutate(
+    Duration = case_when(
+      source == "NY" & Covid_Status == "Post-Covid" ~ 24286 - 24259,
+      source == "NY" & Covid_Status == "Covid" ~ 24259 - 24243,
+      source == "NY" & Covid_Status == "Pre-Covid" ~ 24243 - 24216,
+      source == "HK" & Covid_Status == "Post-Covid" ~ 24286 - 24274,
+      source == "HK" & Covid_Status == "Covid" ~ 24274 - 24242,
+      source == "HK" & Covid_Status == "Pre-Covid" ~ 24242 - 24216,
+      TRUE ~ NA_real_
+    ))
+```
+
+## 2. Exploratory Analysis
+
+### 2.1 Distribution of Total Sales Across Covid Status
+
+Below (figure 1) is a jitter plot of the distribution of total sales across different covid status, grouped by whether the source is New York or Hong Kong. From an overlook, we can see the **overall distribution is similar between different covid periods within each location**, but I also want to see in more detail how covid influenced the art market, which I will do in following sections.
+
+```{r}
+Total$Covid_Status <- factor(Total$Covid_Status, levels = c("Pre-Covid", "Covid", "Post-Covid"))
+ggplot(data = Total, aes(x = Covid_Status, y = Sales_Total_USD, color = source, group = source)) +
+  geom_jitter(alpha=.4) +
+  facet_wrap(~source) +
+  coord_flip() +
+  labs(title = "Total Sales Across Covid Status") +
+  scale_x_discrete(limits = c("Post-Covid", "Covid", "Pre-Covid")) +
+  theme_minimal()
+```
+
+Figure 1: Colored jitterplot of the distribution of total sales across different covid status, grouped by source New York and Hong Kong
+
+### 2.2 Aggregated Total Sales In Covid Status
+
+Figure 2 shows the aggregated total sales of each auction within the covid status, grouped by source New York and Hong Kong. This figure shows that the aggregated total sales for New York dropped during covid but then rised significantly (even much higher than pre covid) post covid. For Hong Kong, the aggregated total sales rised a bit during covid, but fell after covid (even lower than pre covid).
+
+This figure visualizes the trend of aggregated total sales across different status, but can be an oversimplification of the relationship. In the next part, I will conduct a more detailed analysis through regression, could provide a more nuanced understanding.
+
+```{r}
+Total$Covid_Status <- factor(Total$Covid_Status, levels = c("Pre-Covid", "Covid", "Post-Covid"))
+ggplot(data = Total, aes(x = Covid_Status, y = Sales_Total_Covid_Status, color = source, group = source)) +
+  geom_line() +
+  labs(title = "Aggregated Total Sales Across Covid Status") +
+  theme_minimal()
+```
+
+Figure 2: Colored linegraph of how the aggregated total sales of changed across different covid status, grouped by source New York and Hong Kong.
+
+## 3. Comparing Regression Models
+
+I employed three models to measure the effect of Covid Status on Sales Total in different sources (New York or Hong Kong), all are linear regressions with the dependent variable Sales_Total_USD.
+
+-   **mod1:** only takes into account the linear relationship between Sales_Total_USD and the variables source and Auction_Time, assuming no interaction with the Covid_Status variable.
+
+-   **mod 2:** extends mod1 by including the Covid_Status variable. It measures the linear relationship between Sales_Total_USD and the variables Covid_Status, source, and Auction_Time, assuming that Covid_Status affected source New York and Hong Kong the same.
+
+-   **mod 3:** further includes an interaction term between Covid_Status and source, assuming Covid_Status affected New York and Hong Kong differently.
+
+```{r}
+mod1 <- lm(Sales_Total_USD ~ source  + Auction_Time, data= Total)
+```
+
+```{r}
+mod2 <- lm(Sales_Total_USD ~ Covid_Status + source + Auction_Time, data= Total)
+```
+
+```{r}
+mod3 <- lm(Sales_Total_USD ~ Covid_Status * source + Auction_Time, data= Total)
+```
+
+Below are the AIC results for each model, mod1 has the lowest AIC of 11201.93, and is therefore the best model for predicting Sales_Total_USD. Because this is the model that didn't consider Covid Status's effect on Sales Total, we can draw the conclusion that **Covid has very little impact on the art market.**
+
+```{r}
+AIC(mod1, mod2, mod3)
+```
+
+Table 1: The AIC results of mod1, 2, and 3
+
+## 4. Detailed Models
+
+### 4.1 Mod1
+
+To further see the predicted results of the best model mod1, I tidied the model (table2) and plotted the predicted results (figure 3). Table 2 shows that
+
+-   The estimate for a day sale in Hong Kong is -9780446 USD
+
+-   The estimate for a day sale in New York is -9780446 + 41743920 \*1= 31963474 USD
+
+-   The estimate for a evening sale in Hong Kong is -9780446 + 207313038 \*1 = 197532592 USD
+
+-   The estimate for a evening sale in New York is -9780446 + 41743920 \*1+ 207313038 \*1 = 239276512 USD
+
+Figure 3 shows that the predicted values for sales total in New York is between around 1.3e +7 and 4.8e + 7, and the predicted values for sales total in Hong Kong is between -3.75+7 and 1.3e +7. The predicted sales total in New York is much higher than in Hong Kong.
+
+```{r}
+broom::tidy(mod1)
+```
+
+Table 2: The regression results for mod1
+
+```{r}
+ggpredict(mod1,
+          terms = c("source")) |>
+  plot()
+```
+
+Figure3: mod1 regression predicted results for sales total in the two sources
+
+### 4.1.5 Residuals Analysis for Mod1
+
+I conducted residual analysis for Mod1 to further assess the performance of this linear regression model and see if it can be trusted. I used Normal Q-Q Plot (figure 4).
+
+In figure 4, we can see that most of the points fall on the straight line, which suggests that the residuals are approximately normally distributed, supporting the normality assumption of the linear regression model. However, there exists some outliers and deviations, especially an extreme outlier point (x = 2.8, y = 10)
+
+```{r}
+plot(mod1, which = 2, main = "Normal Q-Q Plot", col = "blue")
+```
+
+Figure 4: Residual Plot for mod 1- Normal Q-Q Plot
+
+I plotted a boxplot to further see the distribution and find the outlier, as figure 5 shows, there is an auction with very high sales total, and a few with relatively higher than usual sales total. I then took out the highest selling 15 auctions (table 2), and find that Visionary: The Paul G. Allen Collection Part I is the outlier: it has the highest sales total of 1506386000 USD, 865540000 USD higher than the second highest total sales auction. This is because Paul G. Allen is the late Microsoft co-founder, and has an extremely valuable collection. The worth of the artworks being auctions are extremely high, which is something hard for the model (mod1) to predict and therefore has a high residual value.
+
+```{r}
+boxplot(Total$Sales_Total_USD, main = "Box Plot of Sales_Total_USD")
+
+```
+
+Figure 5: Box plot for the distribution of total sales
+
+```{r}
+Total_New <- Total |>
+  arrange(desc(Sales_Total_USD)) |>
+  select(Auction_Name, source, Sales_Total_USD, Covid_Status) |>
+  head(15)
+Total_New
+```
+
+Table 3: The 15 highest selling auctions
+
+### 4.2 Mod 2 & mod 3
+
+Although mod2 and mod3 are not the best model in this case, I still plotted them to see their relative results. These results show the relative trends predicted in each model, but since they are not the best models and that the model without considering covid's impact is the best model, mod2 and mod3 's results will not be taken into consideration for the final result.
+
+-   Figure 5 assumes that covid impacted New York and Hong Kong the same. It shows that there is a very small rise in total sales during covid, and then a slightly more significant rise post covid.
+
+-   Figure 6 assumes that covid impacted New York and Hong Kong differently, it shows that for New York, the sales total decreased during covid and then increased again after covid (to a point higher than pre-covid). For Hong Kong, sales total increased a bit during covid, but decreased after covid (to a point lower than pre-covid).
+
+```{r}
+broom::tidy(mod2)
+```
+
+```{r}
+ggpredict(mod2,
+          terms = c("Covid_Status","source")) |>
+  plot()
+```
+
+Figure 5: mod2 regression predicted results for sales total in the two sources, taking into account the covid influence.
+
+```{r}
+broom::tidy(mod3)
+```
+
+```{r}
+ggpredict(mod3,
+          terms = c("Covid_Status","source")) |>
+  plot()
+```
+
+Figure 6: mod3 regression predicted results for sales total in the two sources, with interactive variables of covid status \* source
+
+## 5.Conclusion
+
+**Covid had little impact on the sales total in Christie's New York and Hong Kong.**
+
+This analysis employing three linear regression models aimed to measure the impact of Covid Status on Sales Total in different sources, specifically New York and Hong Kong. While each model varied in its inclusion of Covid_Status and interaction terms, the model with the lowest AIC was mod1, which did not consider the effect of Covid_Status on Sales Total. The AIC results, with mod1 having the lowest value at 11201.93, suggest that incorporating Covid_Status did not significantly improve the predictive power of the models.
+
+Based on the analysis and model comparisons, it appears that Covid-19 had a limited impact on the art auction market, at least in the context of the variables considered in the study. The predictive power of the model that excluded the Covid_Status variable (mod1) suggests that factors other than the pandemic may have played a more substantial role in influencing Sales_Total_USD. It is essential to consider additional factors and conduct further research to gain a comprehensive understanding of the nuanced dynamics affecting the art market during and after the pandemic.
+
+## 6.Citations
+
+Christie's. "Christie's: Fine Art, Luxury & Antiques: Auctions & Private Sales." Christie's \| Fine Art, Luxury & Antiques \| Auctions & Private Sales, n.d. https://www.christies.com/.
